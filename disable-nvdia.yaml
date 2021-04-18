@@ -1,0 +1,49 @@
+---
+- name: Nvidia DRM switch (disable)
+  hosts: localhost
+  become: yes
+  tasks:
+
+    - name: X11
+      ansible.builtin.file:
+        path: /etc/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
+        state: absent
+
+    - name: SDDM
+      blockinfile:
+        path: /usr/share/sddm/scripts/Xsetup
+        insertafter: |
+          #!/bin/sh
+          # Xsetup - run as root before the login dialog appears
+        block: ""
+
+    - name: GRUB
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+        line: GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet resume=/dev/mapper/Vol-swap"
+      register: grub
+
+    - name: Modules
+      ansible.builtin.lineinfile:
+        path: /etc/mkinitcpio.conf
+        regexp: '^MODULES='
+        line: MODULES=()
+      register: modules
+
+    - name: Backlist modules
+      blockinfile:
+        path: /etc/modprobe.d/blacklist.conf
+        block: |
+          blacklist nvidia
+          blacklist nvidia_modeset
+          blacklist nvidia_uvm
+          blacklist nvidia_drm
+
+    - name: Re-generate the grub.cfg
+      ansible.builtin.command: grub-mkconfig -o /boot/grub/grub.cfg
+      when: grub.changed
+
+    - name: Re-generate image
+      ansible.builtin.command: mkinitcpio -P
+      when: modules.changed

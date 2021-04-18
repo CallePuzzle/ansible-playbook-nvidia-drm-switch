@@ -1,0 +1,45 @@
+---
+- name: Nvidia DRM switch (enable)
+  hosts: localhost
+  become: yes
+  tasks:
+
+    - name: X11
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/10-nvidia-drm-outputclass.conf"
+        dest: /etc/X11/xorg.conf.d/10-nvidia-drm-outputclass.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: SDDM
+      blockinfile:
+        path: /usr/share/sddm/scripts/Xsetup
+        insertafter: |
+          #!/bin/sh
+          # Xsetup - run as root before the login dialog appears
+        block: |
+          xrandr --setprovideroutputsource modesetting NVIDIA-0
+          xrandr --auto
+
+    - name: GRUB
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+        line: GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet resume=/dev/mapper/Vol-swap nvidia-drm.modeset=1"
+      register: grub
+
+    - name: Modules
+      ansible.builtin.lineinfile:
+        path: /etc/mkinitcpio.conf
+        regexp: '^MODULES='
+        line: MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
+      register: modules
+
+    - name: Re-generate the grub.cfg
+      ansible.builtin.command: grub-mkconfig -o /boot/grub/grub.cfg
+      when: grub.changed
+
+    - name: Re-generate image
+      ansible.builtin.command: mkinitcpio -P
+      when: modules.changed
