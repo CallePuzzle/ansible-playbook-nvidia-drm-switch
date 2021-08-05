@@ -36,6 +36,15 @@
         line: MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
       register: modules
 
+    - name: Backlist modules
+      blockinfile:
+        path: /etc/modprobe.d/blacklist.conf
+        block: |
+          #blacklist nvidia
+          #blacklist nvidia_modeset
+          #blacklist nvidia_uvm
+          #blacklist nvidia_drm
+
     - name: Re-generate the grub.cfg
       ansible.builtin.command: grub-mkconfig -o /boot/grub/grub.cfg
       when: grub.changed
