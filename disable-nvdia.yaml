@@ -40,10 +40,10 @@
           blacklist nvidia_uvm
           blacklist nvidia_drm
 
-    - name: Re-generate the grub.cfg
-      ansible.builtin.command: grub-mkconfig -o /boot/grub/grub.cfg
-      when: grub.changed
-
     - name: Re-generate image
       ansible.builtin.command: mkinitcpio -P
       when: modules.changed
+
+    - name: Re-generate the grub.cfg
+      ansible.builtin.command: grub-mkconfig -o /boot/grub/grub.cfg
+      when: grub.changed

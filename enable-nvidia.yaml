@@ -26,7 +26,7 @@
       ansible.builtin.lineinfile:
         path: /etc/default/grub
         regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
-        line: GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet resume=/dev/mapper/Vol-swap nvidia-drm.modeset=1"
+        line: GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet resume=/dev/mapper/Vol-swap ibt=off nvidia-drm.modeset=1"
       register: grub
 
     - name: Modules
@@ -45,10 +45,10 @@
           #blacklist nvidia_uvm
           #blacklist nvidia_drm
 
-    - name: Re-generate the grub.cfg
-      ansible.builtin.command: grub-mkconfig -o /boot/grub/grub.cfg
-      when: grub.changed
-
     - name: Re-generate image
       ansible.builtin.command: mkinitcpio -P
       when: modules.changed
+
+    - name: Re-generate the grub.cfg
+      ansible.builtin.command: grub-mkconfig -o /boot/grub/grub.cfg
+      when: grub.changed
